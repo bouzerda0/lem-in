@@ -2,73 +2,78 @@ package main
 
 import (
 	"fmt"
+	"sort"
 	"strings"
 )
 
-func DistributeAnts(paths [][]string, totalAnts int) []PathData {
-	var activePaths []PathData
-
-	for _, p := range paths {
-		activePaths = append(activePaths, PathData{Rooms: p, AntsCount: 0})
+func SimulateAndPrint(antsCount int, paths [][]string, endRoom string) {
+	if len(paths) == 0 {
+		return
 	}
 
-	for i := 0; i < totalAnts; i++ {
-		bestPathIdx := 0
-		bestCost := len(activePaths[0].Rooms) + activePaths[0].AntsCount
+	// Sort paths by length (shortest first) for optimal distribution.
+	sort.Slice(paths, func(i, j int) bool {
+		return len(paths[i]) < len(paths[j])
+	})
 
-		for j := 1; j < len(activePaths); j++ {
-			cost := len(activePaths[j].Rooms) + activePaths[j].AntsCount
+	// Distribute ants greedily: assign each ant to the path that currently
+	// yields the lowest completion time (pathLen - 1 + antsOnPath).
+	assigned := make([]int, len(paths)) // ants assigned per path
+	for i := 0; i < antsCount; i++ {
+		best := 0
+		bestCost := (len(paths[0]) - 1) + assigned[0]
+		for j := 1; j < len(paths); j++ {
+			cost := (len(paths[j]) - 1) + assigned[j]
 			if cost < bestCost {
-				bestPathIdx = j
+				best = j
 				bestCost = cost
 			}
 		}
-		activePaths[bestPathIdx].AntsCount++
+		assigned[best]++
 	}
 
-	return activePaths
-}
+	// Simulate turn by turn.
+	type ant struct {
+		id   int
+		path []string
+		step int // current index in path (0 = start)
+	}
 
-func SimulateAndPrint(pathsData []PathData, totalAnts int) {
-	var movingAnts []*Ant
-	nextAntID := 1
+	var moving []*ant
+	nextID := 1
 
 	for {
-		var turnMoves []string
+		var moves []string
 
-		for _, ant := range movingAnts {
-			ant.Step++
-			roomName := ant.Path[ant.Step]
-			turnMoves = append(turnMoves, fmt.Sprintf("L%d-%s", ant.ID, roomName))
+		// Advance all moving ants one step.
+		for _, a := range moving {
+			a.step++
+			moves = append(moves, fmt.Sprintf("L%d-%s", a.id, a.path[a.step]))
 		}
 
-		for i := range pathsData {
-			if pathsData[i].AntsCount > 0 {
-				newAnt := &Ant{
-					ID:   nextAntID,
-					Path: pathsData[i].Rooms,
-					Step: 1,
-				}
-				movingAnts = append(movingAnts, newAnt)
-				turnMoves = append(turnMoves, fmt.Sprintf("L%d-%s", newAnt.ID, newAnt.Path[newAnt.Step]))
-
-				nextAntID++
-				pathsData[i].AntsCount--
+		// Launch new ants from each path that still has capacity.
+		for i := range paths {
+			if assigned[i] > 0 {
+				a := &ant{id: nextID, path: paths[i], step: 1}
+				moving = append(moving, a)
+				moves = append(moves, fmt.Sprintf("L%d-%s", a.id, a.path[1]))
+				nextID++
+				assigned[i]--
 			}
 		}
 
-		var stillMoving []*Ant
-		for _, ant := range movingAnts {
-			if ant.Step < len(ant.Path)-1 {
-				stillMoving = append(stillMoving, ant)
+		// Remove ants that reached the end.
+		var stillMoving []*ant
+		for _, a := range moving {
+			if a.step < len(a.path)-1 {
+				stillMoving = append(stillMoving, a)
 			}
 		}
-		movingAnts = stillMoving
+		moving = stillMoving
 
-		if len(turnMoves) == 0 {
+		if len(moves) == 0 {
 			break
 		}
-
-		fmt.Println(strings.Join(turnMoves, " "))
+		fmt.Println(strings.Join(moves, " "))
 	}
 }

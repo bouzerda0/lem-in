@@ -38,7 +38,5 @@ func main() {
 	}
 	fmt.Println()
 
-	distributedPaths := DistributeAnts(paths, farm.AntsCount)
-
-	SimulateAndPrint(distributedPaths, farm.AntsCount)
+	SimulateAndPrint(farm.AntsCount, paths, farm.End)
 }
