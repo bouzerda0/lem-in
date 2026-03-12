@@ -1,0 +1,785 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive Graph Visualizer</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+
+        .container {
+            background: white;
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 20px;
+            font-size: 2em;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .input-section {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            border: 2px solid #e9ecef;
+        }
+
+        .input-section h3 {
+            margin-top: 0;
+            color: #495057;
+        }
+
+        textarea {
+            width: 100%;
+            height: 120px;
+            padding: 10px;
+            border: 2px solid #ced4da;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            resize: vertical;
+            box-sizing: border-box;
+        }
+
+        textarea:focus {
+            outline: none;
+            border-color: #80bdff;
+            box-shadow: 0 0 0 0.2rem rgba(0,123,255,.25);
+        }
+
+        .input-controls {
+            margin-top: 10px;
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .controls {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        button {
+            background: linear-gradient(45deg, #4CAF50, #45a049);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+        }
+
+        button.secondary {
+            background: linear-gradient(45deg, #6c757d, #5a6268);
+        }
+
+        button.danger {
+            background: linear-gradient(45deg, #dc3545, #c82333);
+        }
+
+        button.primary {
+            background: linear-gradient(45deg, #007bff, #0056b3);
+        }
+
+        #canvas {
+            border: 2px solid #ddd;
+            border-radius: 10px;
+            display: block;
+            margin: 0 auto;
+            background: #fafafa;
+            cursor: grab;
+        }
+
+        #canvas:active {
+            cursor: grabbing;
+        }
+
+        .info {
+            text-align: center;
+            margin-top: 15px;
+            color: #666;
+            font-size: 14px;
+        }
+
+        .node-info {
+            background: #f0f0f0;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 10px;
+            font-family: monospace;
+            border-left: 4px solid #007bff;
+        }
+
+        .stats {
+            display: flex;
+            justify-content: space-around;
+            background: #e9ecef;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+        }
+
+        .stat {
+            text-align: center;
+        }
+
+        .stat-number {
+            font-size: 24px;
+            font-weight: bold;
+            color: #495057;
+        }
+
+        .stat-label {
+            font-size: 12px;
+            color: #6c757d;
+            text-transform: uppercase;
+        }
+
+        .examples {
+            font-size: 12px;
+            color: #6c757d;
+            margin-top: 5px;
+        }
+
+        .layout-controls {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+        }
+
+        .slider-container {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        input[type="range"] {
+            width: 100px;
+        }
+
+        .legend {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 12px;
+        }
+
+        .legend-color {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            border: 2px solid #333;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔗 Graph Visualizer</h1>
+        
+        <div class="input-section">
+            <h3>📝 Graph Data Input</h3>
+            <textarea id="dataInput" placeholder="Enter connections in format: node1-node2&#10;One connection per line&#10;&#10;Example:&#10;start-a&#10;a-b&#10;b-end&#10;start-c&#10;c-end">start-t
+n-e
+a-m
+A-c
+0-o
+E-a
+k-end
+start-h
+o-n
+m-end
+t-E
+start-0
+h-A
+e-end
+c-k
+n-m
+h-n</textarea>
+            <div class="input-controls">
+                <button onclick="loadData()" class="primary">🔄 Load Graph</button>
+                <button onclick="clearData()" class="danger">🗑️ Clear</button>
+                <button onclick="loadExample()" class="secondary">📋 Load Example</button>
+                <button onclick="exportData()">💾 Export</button>
+            </div>
+            <div class="examples">
+                Examples: "A-B", "start-node1", "node1-end", "1-2"
+            </div>
+        </div>
+
+        <div class="stats" id="graphStats">
+            <div class="stat">
+                <div class="stat-number" id="nodeCount">0</div>
+                <div class="stat-label">Nodes</div>
+            </div>
+            <div class="stat">
+                <div class="stat-number" id="edgeCount">0</div>
+                <div class="stat-label">Connections</div>
+            </div>
+            <div class="stat">
+                <div class="stat-number" id="avgDegree">0</div>
+                <div class="stat-label">Avg Degree</div>
+            </div>
+            <div class="stat">
+                <div class="stat-number" id="maxDegree">0</div>
+                <div class="stat-label">Max Degree</div>
+            </div>
+        </div>
+
+        <div class="legend">
+            <div class="legend-item">
+                <div class="legend-color" style="background: #ff6b6b;"></div>
+                <span>Start Nodes</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background: #4ecdc4;"></div>
+                <span>End Nodes</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background: #95e1d3;"></div>
+                <span>Uppercase</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background: #fce38a;"></div>
+                <span>Numbers</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background: #a8e6cf;"></div>
+                <span>Lowercase</span>
+            </div>
+        </div>
+
+        <div class="layout-controls">
+            <button onclick="applyForceLayout()" class="primary">🎯 Force Layout</button>
+            <button onclick="applyCircleLayout()">⭕ Circle Layout</button>
+            <button onclick="applyGridLayout()">⬜ Grid Layout</button>
+            <button onclick="applyHierarchicalLayout()">🌳 Hierarchical</button>
+            
+            <div class="slider-container">
+                <label>Spacing:</label>
+                <input type="range" id="spacingSlider" min="50" max="200" value="120" onchange="updateSpacing()">
+                <span id="spacingValue">120</span>
+            </div>
+        </div>
+        
+        <div class="controls">
+            <button onclick="togglePhysics()">⚡ Toggle Physics</button>
+            <button onclick="centerGraph()">🎯 Center</button>
+            <button onclick="fitToScreen()">📐 Fit Screen</button>
+            <button onclick="toggleLabels()">🏷️ Toggle Labels</button>
+        </div>
+
+        <canvas id="canvas" width="1000" height="700"></canvas>
+        
+        <div class="info">
+            <p>🖱️ Drag nodes • ⚡ Physics simulation • 👆 Click nodes for details</p>
+            <div id="nodeInfo" class="node-info" style="display: none;"></div>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        
+        let nodes = new Map();
+        let edges = [];
+        let physicsEnabled = true;
+        let draggedNode = null;
+        let mousePos = { x: 0, y: 0 };
+        let showLabels = true;
+        let idealDistance = 120;
+
+        function parseData(dataText) {
+            const connections = dataText.trim().split('\n').filter(line => line.trim());
+            nodes.clear();
+            edges = [];
+
+            connections.forEach(conn => {
+                const parts = conn.split('-').map(s => s.trim());
+                if (parts.length !== 2 || !parts[0] || !parts[1]) return;
+                
+                const [from, to] = parts;
+                
+                if (!nodes.has(from)) {
+                    nodes.set(from, createNode(from));
+                }
+                
+                if (!nodes.has(to)) {
+                    nodes.set(to, createNode(to));
+                }
+
+                edges.push({ from, to });
+                nodes.get(from).connections.push(to);
+                nodes.get(to).connections.push(from);
+            });
+
+            updateStats();
+        }
+
+        function createNode(id) {
+            return {
+                id: id,
+                x: Math.random() * (canvas.width - 100) + 50,
+                y: Math.random() * (canvas.height - 100) + 50,
+                vx: 0,
+                vy: 0,
+                radius: getNodeRadius(id),
+                color: getNodeColor(id),
+                connections: []
+            };
+        }
+
+        function getNodeRadius(id) {
+            if (id === 'start' || id === 'end') return 30;
+            return 22;
+        }
+
+        function getNodeColor(id) {
+            if (id === 'start') return '#ff6b6b';
+            if (id === 'end') return '#4ecdc4';
+            if (id.match(/[A-Z]/)) return '#95e1d3';
+            if (id.match(/[0-9]/)) return '#fce38a';
+            return '#a8e6cf';
+        }
+
+        function updateStats() {
+            const nodeCount = nodes.size;
+            const edgeCount = edges.length;
+            const degrees = Array.from(nodes.values()).map(n => n.connections.length);
+            const avgDegree = degrees.length > 0 ? (degrees.reduce((a, b) => a + b, 0) / degrees.length).toFixed(1) : 0;
+            const maxDegree = degrees.length > 0 ? Math.max(...degrees) : 0;
+
+            document.getElementById('nodeCount').textContent = nodeCount;
+            document.getElementById('edgeCount').textContent = edgeCount;
+            document.getElementById('avgDegree').textContent = avgDegree;
+            document.getElementById('maxDegree').textContent = maxDegree;
+        }
+
+        function updatePhysics() {
+            if (!physicsEnabled) return;
+
+            const nodeArray = Array.from(nodes.values());
+            
+            // Spring forces between connected nodes
+            edges.forEach(edge => {
+                const nodeA = nodes.get(edge.from);
+                const nodeB = nodes.get(edge.to);
+                if (!nodeA || !nodeB) return;
+                
+                const dx = nodeB.x - nodeA.x;
+                const dy = nodeB.y - nodeA.y;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+                
+                if (distance > 0) {
+                    const force = (distance - idealDistance) * 0.02;
+                    const fx = (dx / distance) * force;
+                    const fy = (dy / distance) * force;
+                    
+                    nodeA.vx += fx;
+                    nodeA.vy += fy;
+                    nodeB.vx -= fx;
+                    nodeB.vy -= fy;
+                }
+            });
+
+            // Repulsion between all nodes
+            for (let i = 0; i < nodeArray.length; i++) {
+                for (let j = i + 1; j < nodeArray.length; j++) {
+                    const nodeA = nodeArray[i];
+                    const nodeB = nodeArray[j];
+                    
+                    const dx = nodeB.x - nodeA.x;
+                    const dy = nodeB.y - nodeA.y;
+                    const distance = Math.sqrt(dx * dx + dy * dy);
+                    
+                    if (distance > 0 && distance < idealDistance * 1.5) {
+                        const force = 800 / (distance * distance);
+                        const fx = (dx / distance) * force;
+                        const fy = (dy / distance) * force;
+                        
+                        nodeA.vx -= fx;
+                        nodeA.vy -= fy;
+                        nodeB.vx += fx;
+                        nodeB.vy += fy;
+                    }
+                }
+            }
+
+            // Update positions with damping
+            nodeArray.forEach(node => {
+                if (node !== draggedNode) {
+                    node.vx *= 0.9;
+                    node.vy *= 0.9;
+                    node.x += node.vx;
+                    node.y += node.vy;
+                    
+                    // Boundary constraints
+                    node.x = Math.max(node.radius + 10, Math.min(canvas.width - node.radius - 10, node.x));
+                    node.y = Math.max(node.radius + 10, Math.min(canvas.height - node.radius - 10, node.y));
+                }
+            });
+        }
+
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // Draw edges
+            edges.forEach(edge => {
+                const nodeA = nodes.get(edge.from);
+                const nodeB = nodes.get(edge.to);
+                if (!nodeA || !nodeB) return;
+                
+                ctx.strokeStyle = '#999';
+                ctx.lineWidth = 2;
+                ctx.lineCap = 'round';
+                
+                ctx.beginPath();
+                ctx.moveTo(nodeA.x, nodeA.y);
+                ctx.lineTo(nodeB.x, nodeB.y);
+                ctx.stroke();
+            });
+
+            // Draw nodes
+            nodes.forEach(node => {
+                // Shadow
+                ctx.fillStyle = 'rgba(0,0,0,0.15)';
+                ctx.beginPath();
+                ctx.arc(node.x + 3, node.y + 3, node.radius, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Node fill
+                ctx.fillStyle = node.color;
+                ctx.beginPath();
+                ctx.arc(node.x, node.y, node.radius, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Border
+                ctx.strokeStyle = '#333';
+                ctx.lineWidth = 2;
+                ctx.stroke();
+
+                // Label
+                if (showLabels) {
+                    ctx.fillStyle = '#333';
+                    ctx.font = `bold ${node.radius > 25 ? 16 : 14}px Arial`;
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    ctx.fillText(node.id, node.x, node.y);
+                }
+            });
+        }
+
+        // Layout algorithms
+        function applyForceLayout() {
+            physicsEnabled = true;
+            const nodeArray = Array.from(nodes.values());
+            nodeArray.forEach(node => {
+                node.vx = (Math.random() - 0.5) * 10;
+                node.vy = (Math.random() - 0.5) * 10;
+            });
+        }
+
+        function applyCircleLayout() {
+            const nodeArray = Array.from(nodes.values());
+            if (nodeArray.length === 0) return;
+            
+            const radius = Math.min(canvas.width, canvas.height) * 0.35;
+            const centerX = canvas.width / 2;
+            const centerY = canvas.height / 2;
+            
+            nodeArray.forEach((node, i) => {
+                const angle = (i * 2 * Math.PI) / nodeArray.length;
+                node.x = centerX + radius * Math.cos(angle);
+                node.y = centerY + radius * Math.sin(angle);
+                node.vx = 0;
+                node.vy = 0;
+            });
+        }
+
+        function applyGridLayout() {
+            const nodeArray = Array.from(nodes.values());
+            if (nodeArray.length === 0) return;
+            
+            const cols = Math.ceil(Math.sqrt(nodeArray.length));
+            const spacing = Math.min(canvas.width / (cols + 1), canvas.height / (cols + 1));
+            
+            nodeArray.forEach((node, i) => {
+                const row = Math.floor(i / cols);
+                const col = i % cols;
+                node.x = (col + 1) * spacing;
+                node.y = (row + 1) * spacing;
+                node.vx = 0;
+                node.vy = 0;
+            });
+        }
+
+        function applyHierarchicalLayout() {
+            const nodeArray = Array.from(nodes.values());
+            if (nodeArray.length === 0) return;
+            
+            // Simple hierarchical layout
+            const visited = new Set();
+            const levels = [];
+            
+            // Find start nodes
+            let startNodes = nodeArray.filter(n => 
+                n.id === 'start' || n.id.toLowerCase().includes('start')
+            );
+            
+            if (startNodes.length === 0) {
+                // If no start nodes, pick node with highest degree
+                const sortedNodes = nodeArray.sort((a, b) => b.connections.length - a.connections.length);
+                startNodes = [sortedNodes[0]];
+            }
+            
+            // BFS to create levels
+            let currentLevel = startNodes;
+            let levelIndex = 0;
+            
+            while (currentLevel.length > 0 && levelIndex < 10) {
+                levels[levelIndex] = [...currentLevel];
+                const nextLevel = [];
+                
+                currentLevel.forEach(node => {
+                    visited.add(node.id);
+                    node.connections.forEach(connId => {
+                        if (!visited.has(connId)) {
+                            const connNode = nodes.get(connId);
+                            if (connNode && !nextLevel.includes(connNode)) {
+                                nextLevel.push(connNode);
+                            }
+                        }
+                    });
+                });
+                
+                currentLevel = nextLevel;
+                levelIndex++;
+            }
+            
+            // Position nodes by level
+            levels.forEach((level, levelIdx) => {
+                if (level.length === 0) return;
+                const y = (levelIdx + 1) * (canvas.height / (levels.length + 1));
+                level.forEach((node, nodeIdx) => {
+                    node.x = (nodeIdx + 1) * (canvas.width / (level.length + 1));
+                    node.y = y;
+                    node.vx = 0;
+                    node.vy = 0;
+                });
+            });
+        }
+
+        // Event handlers
+        function getMousePos(e) {
+            const rect = canvas.getBoundingClientRect();
+            return {
+                x: e.clientX - rect.left,
+                y: e.clientY - rect.top
+            };
+        }
+
+        function getNodeAt(pos) {
+            for (let [id, node] of nodes) {
+                const dx = pos.x - node.x;
+                const dy = pos.y - node.y;
+                if (Math.sqrt(dx * dx + dy * dy) < node.radius) {
+                    return node;
+                }
+            }
+            return null;
+        }
+
+        canvas.addEventListener('mousedown', (e) => {
+            mousePos = getMousePos(e);
+            draggedNode = getNodeAt(mousePos);
+            if (draggedNode) {
+                draggedNode.vx = 0;
+                draggedNode.vy = 0;
+            }
+        });
+
+        canvas.addEventListener('mousemove', (e) => {
+            mousePos = getMousePos(e);
+            if (draggedNode) {
+                draggedNode.x = mousePos.x;
+                draggedNode.y = mousePos.y;
+            }
+        });
+
+        canvas.addEventListener('mouseup', () => {
+            draggedNode = null;
+        });
+
+        canvas.addEventListener('click', (e) => {
+            const pos = getMousePos(e);
+            const node = getNodeAt(pos);
+            if (node) {
+                const infoDiv = document.getElementById('nodeInfo');
+                infoDiv.innerHTML = `
+                    <strong>Node:</strong> ${node.id}<br>
+                    <strong>Connections:</strong> ${node.connections.join(', ')}<br>
+                    <strong>Degree:</strong> ${node.connections.length}<br>
+                    <strong>Type:</strong> ${getNodeType(node.id)}
+                `;
+                infoDiv.style.display = 'block';
+            }
+        });
+
+        function getNodeType(id) {
+            if (id === 'start') return 'Start Node';
+            if (id === 'end') return 'End Node';
+            if (id.match(/[A-Z]/)) return 'Uppercase Letter';
+            if (id.match(/[0-9]/)) return 'Number';
+            return 'Lowercase Letter';
+        }
+
+        // Control functions
+        function loadData() {
+            const data = document.getElementById('dataInput').value;
+            parseData(data);
+            applyForceLayout();
+        }
+
+        function clearData() {
+            document.getElementById('dataInput').value = '';
+            nodes.clear();
+            edges = [];
+            updateStats();
+            document.getElementById('nodeInfo').style.display = 'none';
+        }
+
+        function loadExample() {
+            document.getElementById('dataInput').value = `start-a
+a-b
+b-c
+c-end
+start-d
+d-e
+e-f
+f-end
+a-d
+b-e
+c-f`;
+            loadData();
+        }
+
+        function exportData() {
+            const data = document.getElementById('dataInput').value;
+            if (!data.trim()) {
+                alert('No data to export!');
+                return;
+            }
+            const blob = new Blob([data], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'graph_data.txt';
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        function togglePhysics() {
+            physicsEnabled = !physicsEnabled;
+        }
+
+        function centerGraph() {
+            if (nodes.size === 0) return;
+            const nodeArray = Array.from(nodes.values());
+            const avgX = nodeArray.reduce((sum, node) => sum + node.x, 0) / nodeArray.length;
+            const avgY = nodeArray.reduce((sum, node) => sum + node.y, 0) / nodeArray.length;
+            
+            const centerX = canvas.width / 2;
+            const centerY = canvas.height / 2;
+            const offsetX = centerX - avgX;
+            const offsetY = centerY - avgY;
+            
+            nodeArray.forEach(node => {
+                node.x += offsetX;
+                node.y += offsetY;
+            });
+        }
+
+        function fitToScreen() {
+            if (nodes.size === 0) return;
+            const nodeArray = Array.from(nodes.values());
+            const padding = 50;
+            
+            const minX = Math.min(...nodeArray.map(n => n.x));
+            const maxX = Math.max(...nodeArray.map(n => n.x));
+            const minY = Math.min(...nodeArray.map(n => n.y));
+            const maxY = Math.max(...nodeArray.map(n => n.y));
+            
+            const scaleX = (canvas.width - 2 * padding) / (maxX - minX);
+            const scaleY = (canvas.height - 2 * padding) / (maxY - minY);
+            const scale = Math.min(scaleX, scaleY, 1);
+            
+            const centerX = (minX + maxX) / 2;
+            const centerY = (minY + maxY) / 2;
+            const newCenterX = canvas.width / 2;
+            const newCenterY = canvas.height / 2;
+            
+            nodeArray.forEach(node => {
+                node.x = (node.x - centerX) * scale + newCenterX;
+                node.y = (node.y - centerY) * scale + newCenterY;
+            });
+        }
+
+        function toggleLabels() {
+            showLabels = !showLabels;
+        }
+
+        function updateSpacing() {
+            idealDistance = parseInt(document.getElementById('spacingSlider').value);
+            document.getElementById('spacingValue').textContent = idealDistance;
+        }
+
+        function animate() {
+            updatePhysics();
+            draw();
+            requestAnimationFrame(animate);
+        }
+
+        // Initialize
+        parseData(document.getElementById('dataInput').value);
+        animate();
+        
+        // Center the graph after initial layout
+        setTimeout(() => {
+            centerGraph();
+        }, 1000);
+    </script>
+</body>
+</html>

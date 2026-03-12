@@ -1,3 +1,5 @@
+// Lem-in: moves ants from start to end through a network of rooms.
+// Usage: go run . <filename>
 package main
 
 import (
@@ -32,6 +34,7 @@ func main() {
 		return
 	}
 
+	// Print original input then simulation.
 	fmt.Print(string(content))
 	if len(content) > 0 && content[len(content)-1] != '\n' {
 		fmt.Println()

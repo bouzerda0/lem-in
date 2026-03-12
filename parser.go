@@ -40,11 +40,11 @@ func ParseReader(r io.Reader) (*Farm, error) {
 
 	phase := phaseAnts
 	lineNum := 0
-	pendingStart := false // ##start waiting for  rooms
-	pendingEnd := false   // ##end waiting for  rooms
+	pendingStart := false // true when ##start was seen but the room line hasn't followed yet
+	pendingEnd := false   // true when ##end was seen but the room line hasn't followed yet
 	hasStart := false
 	hasEnd := false
-	linkSet := make(map[string]bool) // forbid dublicate links
+	linkSet := make(map[string]bool) // prevents duplicate links
 
 	for scanner.Scan() {
 		line := scanner.Text()
@@ -96,7 +96,7 @@ func ParseReader(r io.Reader) (*Farm, error) {
 				return nil, fmt.Errorf("line %d: number of ants must be > 0, got %d", lineNum, ants)
 			}
 			farm.AntsCount = ants
-			phase = phaseRooms // change status to rooms
+			phase = phaseRooms
 			continue
 		}
 
@@ -134,7 +134,7 @@ func ParseReader(r io.Reader) (*Farm, error) {
 				return nil, fmt.Errorf("line %d: duplicate room name %q", lineNum, name)
 			}
 
-			room := &Room{Name: name, x: x, y: y}
+			room := &Room{Name: name, X: x, Y: y}
 			farm.Rooms[name] = room
 
 			// Apply pending ##start / ##end directives.

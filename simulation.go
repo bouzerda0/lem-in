@@ -6,19 +6,19 @@ import (
 	"strings"
 )
 
+// SimulateAndPrint distributes ants across paths and prints moves turn by turn.
 func SimulateAndPrint(antsCount int, paths [][]string, endRoom string) {
 	if len(paths) == 0 {
 		return
 	}
 
-	// Sort paths by length (shortest first) for optimal distribution.
+	// Sort paths shortest first.
 	sort.Slice(paths, func(i, j int) bool {
 		return len(paths[i]) < len(paths[j])
 	})
 
-	// Distribute ants greedily: assign each ant to the path that currently
-	// yields the lowest completion time (pathLen - 1 + antsOnPath).
-	assigned := make([]int, len(paths)) // ants assigned per path
+	// Assign each ant to the path with lowest completion cost.
+	assigned := make([]int, len(paths))
 	for i := 0; i < antsCount; i++ {
 		best := 0
 		bestCost := (len(paths[0]) - 1) + assigned[0]
@@ -36,7 +36,7 @@ func SimulateAndPrint(antsCount int, paths [][]string, endRoom string) {
 	type ant struct {
 		id   int
 		path []string
-		step int // current index in path (0 = start)
+		step int
 	}
 
 	var moving []*ant
@@ -45,13 +45,13 @@ func SimulateAndPrint(antsCount int, paths [][]string, endRoom string) {
 	for {
 		var moves []string
 
-		// Advance all moving ants one step.
+		// Move existing ants forward.
 		for _, a := range moving {
 			a.step++
 			moves = append(moves, fmt.Sprintf("L%d-%s", a.id, a.path[a.step]))
 		}
 
-		// Launch new ants from each path that still has capacity.
+		// Launch new ants.
 		for i := range paths {
 			if assigned[i] > 0 {
 				a := &ant{id: nextID, path: paths[i], step: 1}

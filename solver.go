@@ -1,19 +1,11 @@
 package main
-type edge struct{ from, to string }
 
+// Edmonds-Karp solver: finds optimal vertex-disjoint paths using BFS + node splitting.
 
-type bfsState struct {
-	node string
-	side byte 
-}
-
-type parentInfo struct {
-	node string
-	side byte
-}
-
+// bfsResidual finds the shortest augmenting path in the residual graph.
+// Returns nil if no path exists (max flow reached).
 func bfsResidual(farm *Farm, flow map[edge]bool) []string {
-	// Build set of interior nodes that carry flow (capacity consumed).
+	// Track interior nodes that already carry flow.
 	usedInterior := make(map[string]bool)
 	for e, active := range flow {
 		if active {
@@ -26,7 +18,7 @@ func bfsResidual(farm *Farm, flow map[edge]bool) []string {
 		}
 	}
 
-	// BFS with virtual states.
+	// BFS with virtual (node, side) states.
 	start := bfsState{farm.Start, 0}
 	visited := map[bfsState]bool{start: true}
 	parent := map[bfsState]parentInfo{}
@@ -38,17 +30,16 @@ func bfsResidual(farm *Farm, flow map[edge]bool) []string {
 		u := cur.node
 
 		for _, v := range farm.Rooms[u].Links {
-	
 			canLeaveForward := cur.side == 0 || cur.side == 'o'
 			canLeaveBackward := cur.side == 0 || cur.side == 'i'
 
-			// Try forward edge u→v (no flow on it).
+			// Forward edge u→v (no existing flow).
 			if canLeaveForward && !flow[edge{u, v}] {
 				var next bfsState
 				if v == farm.End || v == farm.Start || !usedInterior[v] {
-					next = bfsState{v, 0} // free node
+					next = bfsState{v, 0}
 				} else {
-					next = bfsState{v, 'i'} // enter used-interior forward → in-side
+					next = bfsState{v, 'i'}
 				}
 				if !visited[next] {
 					visited[next] = true
@@ -60,13 +51,13 @@ func bfsResidual(farm *Farm, flow map[edge]bool) []string {
 				}
 			}
 
-			// Try backward edge: flow exists on v→u, cancel it.
+			// Backward edge: cancel existing flow on v→u.
 			if canLeaveBackward && flow[edge{v, u}] {
 				var next bfsState
 				if v == farm.End || v == farm.Start || !usedInterior[v] {
 					next = bfsState{v, 0}
 				} else {
-					next = bfsState{v, 'o'} // enter used-interior backward → out-side
+					next = bfsState{v, 'o'}
 				}
 				if !visited[next] {
 					visited[next] = true
@@ -82,6 +73,7 @@ func bfsResidual(farm *Farm, flow map[edge]bool) []string {
 	return nil
 }
 
+// buildPathFromBFS reconstructs the path from BFS parent pointers.
 func buildPathFromBFS(parent map[bfsState]parentInfo, start, end bfsState) []string {
 	var path []string
 	for s := end; s != start; {
@@ -90,25 +82,27 @@ func buildPathFromBFS(parent map[bfsState]parentInfo, start, end bfsState) []str
 		s = bfsState{p.node, p.side}
 	}
 	path = append(path, start.node)
+	// Reverse: built end→start, need start→end.
 	for i, j := 0, len(path)-1; i < j; i, j = i+1, j-1 {
 		path[i], path[j] = path[j], path[i]
 	}
 	return path
 }
 
-
+// augment pushes flow along the path, cancelling reverse edges when needed.
 func augment(flow map[edge]bool, path []string) {
 	for i := 0; i < len(path)-1; i++ {
 		u, v := path[i], path[i+1]
 		rev := edge{v, u}
 		if flow[rev] {
-			delete(flow, rev) // edge cancellation
+			delete(flow, rev)
 		} else {
 			flow[edge{u, v}] = true
 		}
 	}
 }
 
+// extractPaths converts the flow map into concrete start→end paths.
 func extractPaths(farm *Farm, flow map[edge]bool) [][]string {
 	next := make(map[string][]string)
 	for e, active := range flow {
@@ -136,6 +130,7 @@ func extractPaths(farm *Farm, flow map[edge]bool) [][]string {
 	return paths
 }
 
+// turnsNeeded calculates minimum turns to move all ants through the paths.
 func turnsNeeded(ants int, paths [][]string) int {
 	k := len(paths)
 	if k == 0 {
@@ -145,25 +140,27 @@ func turnsNeeded(ants int, paths [][]string) int {
 	for i, p := range paths {
 		lengths[i] = len(p) - 1
 	}
-	// Sort ascending (insertion sort — k is tiny).
+	// Sort ascending.
 	for i := 1; i < k; i++ {
 		for j := i; j > 0 && lengths[j] < lengths[j-1]; j-- {
 			lengths[j], lengths[j-1] = lengths[j-1], lengths[j]
 		}
 	}
 	for turns := lengths[k-1]; ; turns++ {
-		cap := 0
+		capacity := 0
 		for _, l := range lengths {
 			if c := turns - l; c > 0 {
-				cap += c
+				capacity += c
 			}
 		}
-		if cap >= ants {
+		if capacity >= ants {
 			return turns
 		}
 	}
 }
 
+// FindAllPaths runs Edmonds-Karp to find the best set of disjoint paths.
+// Stops when adding more paths wouldn't reduce total turns.
 func FindAllPaths(farm *Farm) [][]string {
 	flow := make(map[edge]bool)
 	var bestPaths [][]string
